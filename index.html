@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Blind Chicken Showdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one phone-first column. Score form, then a results area with Podium / Charts / Tasters sub-tabs. */
+:root{
+  --bg:#fbf6ee; --panel:#ffffff; --ink:#2b1a10; --muted:#7a6250; --line:#ead9c4;
+  --gold:#d98a0b; --gold-soft:#fde9c4; --crust:#9c3d12; --good:#2f7d4a;
+  --c-flav:#d98a0b; --c-crisp:#9c3d12; --c-juicy:#2f7d8a;
+  --d1:#e7dccd; --d2:#ecc98c; --d3:#e2a446; --d4:#c0710a; --d5:#7f2f0c;
+  --t1:#2b1a10; --t2:#2b1a10; --t3:#2b1a10; --t4:#ffffff; --t5:#ffffff;
+  --hen:#fffaf2; --hen-line:#2b1a10; --comb:#d83a2a;
+  --display:"Bowlby One","Arial Black",Impact,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#1b130d; --panel:#261a12; --ink:#f6e8d6; --muted:#c2a68d; --line:#3d2b1e;
+  --gold:#f2a93b; --gold-soft:#3e2a12; --crust:#ff8a52; --good:#6fcf8f;
+  --c-flav:#f2a93b; --c-crisp:#ff8a52; --c-juicy:#5cc4d1;
+  --d1:#3d2b1e; --d2:#6b4a22; --d3:#a46b1c; --d4:#f2a93b; --d5:#ffc773;
+  --t1:#f6e8d6; --t2:#f6e8d6; --t3:#1b130d; --t4:#1b130d; --t5:#1b130d;
+  --hen:#fff3e0; --hen-line:#2b1a10; --comb:#ff5a45; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+[hidden]{display:none!important}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:20px 80px;display:grid;gap:18px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(1.9rem,8vw,3rem);line-height:1;margin:0;color:var(--crust);text-wrap:balance}
+h2{font-family:var(--display);font-weight:400;font-size:1.25rem;margin:0;text-wrap:balance}
+h3{font-size:1rem;margin:0}
+p{margin:0}
+.tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+
+/* Header + mascot */
+header{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.mascot{width:92px;height:92px;cursor:pointer;background:none;border:0;padding:0;border-radius:50%}
+.mascot svg{width:100%;height:100%;animation:bob 1.6s ease-in-out infinite;transform-origin:50% 90%}
+.mascot:active svg{animation:peck .35s ease}
+.bubble{position:relative;background:var(--panel);border:2px solid var(--ink);border-radius:14px;padding:6px 10px;font-weight:700;font-size:.9rem;margin-top:8px;display:inline-block;max-width:100%}
+.bubble::before{content:"";position:absolute;left:-9px;top:12px;border:7px solid transparent;border-right-color:var(--ink)}
+@keyframes bob{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg) translateY(-3px)}}
+@keyframes peck{50%{transform:rotate(18deg) translateY(6px)}}
+
+nav.tabs{display:flex;gap:6px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding-block:8px;z-index:5}
+nav.tabs button{flex:1}
+button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:14px;min-width:0}
+label.field{display:grid;gap:6px;font-weight:700}
+input[type=text],input[type=password],select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+button{font:inherit;font-weight:700;border-radius:999px;padding:9px 16px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:var(--crust);border-color:var(--crust);color:#fff}
+.big{font-family:var(--display);font-weight:400;font-size:1.25rem;padding:14px 26px;width:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* Score form */
+.sample-head{display:flex;align-items:center;gap:10px}
+.letter{font-family:var(--display);font-size:2rem;line-height:1;color:var(--gold)}
+.cat{display:grid;gap:6px}
+.cat-name{font-size:.92rem;font-weight:700}
+.scale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.scale input{position:absolute;opacity:0;width:1px;height:1px}
+.scale label{display:grid;place-items:center;gap:0;border:1px solid var(--line);border-radius:10px;padding:8px 2px;cursor:pointer;background:var(--bg);text-align:center;min-width:0;transition:transform .12s}
+.scale label b{font-family:var(--mono);font-size:1.05rem}
+.scale label span{font-size:.62rem;color:var(--muted);line-height:1.1}
+.scale input:checked + label{background:var(--gold);border-color:var(--gold);color:#2b1a10;transform:scale(1.06)}
+.scale input:checked + label span{color:#2b1a10}
+.scale input:focus-visible + label{outline:3px solid var(--gold);outline-offset:2px}
+.msg{border-radius:10px;padding:10px 12px;font-size:.95rem}
+.msg.ok{background:color-mix(in srgb,var(--good) 15%,transparent);color:var(--good)}
+.msg.err{background:color-mix(in srgb,var(--crust) 14%,transparent);color:var(--crust)}
+.msg.info{background:var(--gold-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.85rem;border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+button.chip{font-weight:700;padding:6px 12px}
+.stat{font-family:var(--display);font-size:2.4rem;line-height:1;color:var(--gold)}
+.guard{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center}
+.guard svg{width:96px;height:96px}
+
+/* Host */
+.keygrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.keyrow{display:flex;gap:8px;align-items:center}
+.keyrow .letter{font-size:1.4rem;width:1.6rem;text-align:center}
+
+/* Results */
+.subtabs{display:flex;gap:6px;flex-wrap:wrap}
+.subtabs button{flex:1 1 auto}
+.headline{font-family:var(--display);font-size:clamp(1.5rem,6vw,2.3rem);line-height:1.05;color:var(--crust);text-align:center;text-wrap:balance;animation:pop .6s ease both}
+.podium{display:grid;gap:8px}
+.place{display:grid;grid-template-columns:2.6rem 1fr auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel);animation:pop .5s ease both}
+.place.first{border:2px solid var(--gold);background:var(--gold-soft)}
+.rank{font-family:var(--display);font-size:1.5rem;color:var(--muted);text-align:center}
+.place.first .rank{color:var(--gold)}
+.brand{font-family:var(--display);font-size:1.2rem;line-height:1.15}
+.sub{font-size:.8rem;color:var(--muted);font-family:var(--mono)}
+.score{font-family:var(--mono);font-weight:700;font-size:1.3rem;font-variant-numeric:tabular-nums}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.card{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel);display:grid;gap:4px;align-content:start;min-width:0}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.9rem}
+th,td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+td.win{color:var(--gold);font-weight:700}
+td.heat{text-align:center;font-family:var(--mono);font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.82rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.chart{overflow-x:auto}
+.chart svg{width:100%;min-width:540px;height:auto;display:block}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .axis{fill:var(--muted);font:11px var(--mono)}
+.chart .lbl{fill:var(--ink);font:700 12px var(--body)}
+.chart .val{fill:var(--ink);font:700 10px var(--mono)}
+.chart .meanline{stroke:var(--ink);stroke-width:2;stroke-dasharray:4 3}
+.badges{display:flex;flex-wrap:wrap;gap:6px}
+.badge{background:var(--gold-soft);border:1px solid var(--gold);border-radius:999px;padding:3px 10px;font-size:.82rem;font-weight:700}
+
+/* Confetti */
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
+.confetti span{position:absolute;top:-8%;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(118vh) rotate(600deg)}}
+@keyframes pop{from{transform:translateY(8px) scale(.97);opacity:.2}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.place,.headline,.mascot svg{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <button class="mascot" id="mascot" type="button" aria-label="Tap the chicken for a pun"></button>
+    <div>
+      <div class="tag">Six samples · three scores · one winner</div>
+      <h1>Blind Chicken Showdown</h1>
+      <div class="bubble" id="bubble" aria-live="polite">Bawk! Tap me.</div>
+    </div>
+  </header>
+
+  <div class="msg err" id="notconnected" hidden>This site isn't connected to its score sheet yet. The host needs to paste the Apps Script web app URL into <code>API_URL</code> near the bottom of index.html.</div>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-score" aria-selected="true" type="button">Score</button>
+    <button role="tab" id="tab-results" aria-selected="false" type="button">Results</button>
+    <button role="tab" id="tab-host" aria-selected="false" type="button">Host</button>
+  </nav>
+
+  <!-- SCORE -->
+  <section id="view-score" style="display:grid;gap:14px">
+    <div class="panel">
+      <label class="field" for="name">Your name
+        <input type="text" id="name" maxlength="40" autocomplete="given-name" placeholder="e.g. Bea">
+      </label>
+      <p class="muted small">Rate each sample from 1 to 5. Nobody sees your scores until the host reveals them. Submit again with the same name to change your scores.</p>
+    </div>
+    <div id="samples" style="display:grid;gap:14px"></div>
+    <div class="msg" id="scoremsg" hidden></div>
+    <button class="primary big" id="submit" type="button">Submit my scores</button>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="view-results" hidden style="display:grid;gap:14px">
+    <div class="panel" id="lockbox">
+      <div class="guard">
+        <div id="guardchick"></div>
+        <div style="display:grid;gap:6px">
+          <h2>No peeking</h2>
+          <p class="muted">This chicken is guarding the results until the host reveals them.</p>
+        </div>
+      </div>
+      <div><div class="stat" id="count">–</div><div class="sub">tasters have submitted</div></div>
+      <div class="chips" id="names"></div>
+      <button type="button" id="refresh">Refresh</button>
+    </div>
+    <div id="stage" hidden style="display:grid;gap:14px"></div>
+  </section>
+
+  <!-- HOST -->
+  <section id="view-host" hidden style="display:grid;gap:14px">
+    <div class="panel" id="pinbox">
+      <label class="field" for="pin">Host PIN
+        <input type="password" id="pin" inputmode="numeric" autocomplete="off">
+      </label>
+      <button class="primary" type="button" id="unlock">Open host controls</button>
+      <div class="msg" id="pinmsg" hidden></div>
+    </div>
+    <div id="hostpanel" hidden style="display:grid;gap:14px">
+      <div class="panel">
+        <h2>Secret key</h2>
+        <p class="muted">Which brand is behind each sample letter. Shown to everyone only after you reveal.</p>
+        <div class="keygrid" id="keygrid"></div>
+        <button type="button" id="savekey">Save key</button>
+        <div class="msg" id="keymsg" hidden></div>
+      </div>
+      <div class="panel">
+        <h2>Who has scored</h2>
+        <div><div class="stat" id="hcount">0</div><div class="sub">tasters</div></div>
+        <div class="chips" id="hnames"></div>
+        <button type="button" id="hrefresh">Refresh</button>
+      </div>
+      <div class="panel">
+        <h2>Reveal</h2>
+        <p class="muted" id="revealstate">Results are hidden.</p>
+        <div class="row">
+          <button class="primary" type="button" id="revealbtn">Reveal to everyone</button>
+          <button type="button" id="hidebtn">Hide again</button>
+          <button type="button" id="peekbtn">Preview (only on this screen)</button>
+        </div>
+        <div class="msg" id="revealmsg" hidden></div>
+      </div>
+      <div id="peek" style="display:grid;gap:14px"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ===== Paste your Apps Script web app URL here (ends in /exec) =====
+const API_URL = "https://script.google.com/macros/s/AKfycbzvUA1OdhCyTAev1UROHeQUGjn8MOGHCtYRR7PmC-kECA5HokzjR9jTTm3HjX6x_8OvSg/exec";
+// ====================================================================
+
+const LETTERS=["A","B","C","D","E","F"];
+const BRANDS=["Jollibee","KFC","McDonald's","Arnold's","Popeyes","Texas Chicken"];
+const CATS=[{k:"flavour",label:"Flavour",short:"Flavour"},{k:"crisp",label:"Crispiness of skin",short:"Crispiness"},{k:"juicy",label:"Juiciness of meat",short:"Juiciness"}];
+const CATCOL={flavour:"var(--c-flav)",crisp:"var(--c-crisp)",juicy:"var(--c-juicy)"};
+const RATE=["Fowl","Meh","Decent","Tasty","Cluck yeah!"];
+const PUNS=["Bawk! Tap me again.","Winner winner, chicken dinner.","No fowl play, please.","I'm not chicken. You're chicken.","Crispy is a lifestyle.","Why did the chicken cross the road? To avoid this taste test.","Judge wisely. I have cousins in there.","Eggs-cellent scoring, everyone.","This is a no-cluck zone. Focus.","Keep calm and drumstick on.","Wing it. Then score it."];
+const connected=/^https:\/\/script\.google\.com\//.test(API_URL);
+const reduceMotion=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=v=>v==null||isNaN(v)?"–":v.toFixed(2);
+let hostPin="",pollTimer=null,shownReveal=false;
+
+// ---------- Mascot ----------
+function chickenSVG(){
+  return `<svg viewBox="0 0 120 120" aria-hidden="true">
+  <path d="M30 62 q-18 -10 -12 -28 q8 12 18 14 q-6 -14 2 -24 q4 16 12 20z" style="fill:var(--hen);stroke:var(--hen-line);stroke-width:2.5;stroke-linejoin:round"/>
+  <ellipse cx="58" cy="74" rx="36" ry="28" style="fill:var(--hen);stroke:var(--hen-line);stroke-width:2.5"/>
+  <path d="M68 28 q2 -12 9 -4 q3 -12 10 -2 q8 -8 8 6 z" style="fill:var(--comb);stroke:var(--hen-line);stroke-width:2;stroke-linejoin:round"/>
+  <circle cx="80" cy="44" r="19" style="fill:var(--hen);stroke:var(--hen-line);stroke-width:2.5"/>
+  <path d="M97 40 l16 6 l-16 6 z" style="fill:#f2a93b;stroke:var(--hen-line);stroke-width:2;stroke-linejoin:round"/>
+  <path d="M94 54 q6 9 -1 13 q-6 -4 1 -13z" style="fill:var(--comb);stroke:var(--hen-line);stroke-width:1.8"/>
+  <circle cx="86" cy="40" r="3.4" style="fill:var(--hen-line)"/>
+  <circle cx="87.2" cy="38.8" r="1" style="fill:#fff"/>
+  <path d="M40 74 q16 -16 32 0 q-16 16 -32 0z" style="fill:#f4e2c4;stroke:var(--hen-line);stroke-width:2"/>
+  <path d="M50 100 v12 m-6 0 h12 M66 100 v12 m-6 0 h12" style="stroke:#e0922a;stroke-width:3;stroke-linecap:round;fill:none"/>
+  </svg>`;
+}
+$("mascot").innerHTML=chickenSVG();
+$("guardchick").innerHTML=chickenSVG();
+let punIx=0;
+$("mascot").addEventListener("click",()=>{punIx=(punIx+1+Math.floor(Math.random()*(PUNS.length-1)))%PUNS.length;$("bubble").textContent=PUNS[punIx]});
+
+function confetti(){
+  if(reduceMotion)return;
+  const box=document.createElement("div");box.className="confetti";
+  const bits=["🍗","🍗","🐔","🐣","🍗","✨","🪶"];
+  for(let i=0;i<46;i++){
+    const s=document.createElement("span");s.textContent=bits[i%bits.length];
+    s.style.left=Math.random()*100+"%";s.style.fontSize=(18+Math.random()*22)+"px";
+    s.style.animationDuration=(2.6+Math.random()*2.2)+"s";s.style.animationDelay=(Math.random()*1.2)+"s";
+    box.appendChild(s);
+  }
+  document.body.appendChild(box);setTimeout(()=>box.remove(),7000);
+}
+
+// ---------- API ----------
+async function apiGet(action){const r=await fetch(API_URL+"?action="+encodeURIComponent(action));return r.json()}
+async function apiPost(data){const r=await fetch(API_URL,{method:"POST",body:JSON.stringify(data)});return r.json()}
+function msg(el,text,kind){el.hidden=!text;el.className="msg "+(kind||"info");el.textContent=text||""}
+
+// ---------- Tabs ----------
+const tabs={score:$("tab-score"),results:$("tab-results"),host:$("tab-host")};
+function show(view){
+  Object.entries(tabs).forEach(([k,b])=>{b.setAttribute("aria-selected",k===view);$("view-"+k).hidden=k!==view});
+  clearInterval(pollTimer);
+  if(view==="results"){loadResults();pollTimer=setInterval(loadResults,10000)}
+}
+Object.entries(tabs).forEach(([k,b])=>b.addEventListener("click",()=>show(k)));
+
+// ---------- Score form ----------
+function buildForm(){
+  const box=$("samples");
+  LETTERS.forEach(L=>{
+    const p=document.createElement("div");p.className="panel";
+    p.innerHTML=`<div class="sample-head"><span class="letter">${L}</span><span class="tag">Mystery chicken ${L}</span></div>`;
+    CATS.forEach(c=>{
+      const g=document.createElement("div");g.className="cat";g.setAttribute("role","radiogroup");g.setAttribute("aria-label",`Sample ${L} ${c.label}`);
+      let html=`<div class="cat-name">${c.label}</div><div class="scale">`;
+      for(let v=1;v<=5;v++){const id=`r-${L}-${c.k}-${v}`;html+=`<input type="radio" name="${L}_${c.k}" id="${id}" value="${v}"><label for="${id}"><b>${v}</b><span>${RATE[v-1]}</span></label>`}
+      g.innerHTML=html+`</div>`;p.appendChild(g);
+    });
+    box.appendChild(p);
+  });
+  try{$("name").value=localStorage.getItem("chickenName")||""}catch(e){}
+}
+async function submitScores(){
+  const name=$("name").value.trim(),m=$("scoremsg");
+  if(!name){msg(m,"Please enter your name at the top.","err");$("name").focus();return}
+  const scores={},missing=[];
+  LETTERS.forEach(L=>{scores[L]={};CATS.forEach(c=>{const x=document.querySelector(`input[name="${L}_${c.k}"]:checked`);if(x)scores[L][c.k]=+x.value;else if(!missing.includes(L))missing.push(L)})});
+  if(missing.length){msg(m,"Some scores are missing for Sample "+missing.join(", ")+".","err");return}
+  if(!connected){msg(m,"This site isn't connected yet, so scores can't be saved.","err");return}
+  const b=$("submit");b.disabled=true;b.textContent="Plucking your scores…";
+  try{
+    const res=await apiPost({action:"submit",name,scores});
+    if(res.ok){try{localStorage.setItem("chickenName",name)}catch(e){}
+      msg(m,res.updated?`Updated your scores, ${name}. Cluck yeah.`:`Saved! Thanks, ${name}. Head to Results for the reveal.`,"ok");
+      $("bubble").textContent="Bawk! Scores safely in the coop.";}
+    else msg(m,res.error||"Couldn't save. Please try again.","err");
+  }catch(e){msg(m,"Couldn't reach the score sheet. Check your connection and try again.","err")}
+  b.disabled=false;b.textContent="Submit my scores";
+}
+
+// ---------- Analysis ----------
+function sortRes(res){return [...res].sort((a,b)=>{for(const k of ["overall","flavour","crisp","juicy"]){const d=(b[k]??-1)-(a[k]??-1);if(Math.abs(d)>1e-9)return d}return 0})}
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+const sd=a=>{const m=mean(a);return a.length>1?Math.sqrt(mean(a.map(v=>(v-m)**2))):null};
+function analyze(data){
+  const res=sortRes(data.results), tasters=data.tasters||[];
+  const g={};data.results.forEach(r=>g[r.sample]=r);
+  const T=tasters.map(t=>{
+    const all=[],devs=[],crisp=[],per={};
+    LETTERS.forEach(L=>{
+      const s=t.scores[L]||{};const vals=[];
+      CATS.forEach(c=>{const v=s[c.k];if(v>=1&&v<=5){vals.push(v);all.push(v);if(g[L]&&g[L][c.k]!=null)devs.push(Math.abs(v-g[L][c.k]));if(c.k==="crisp")crisp.push(v)}});
+      per[L]=mean(vals);
+    });
+    return {name:t.name,scores:t.scores,per,avg:mean(all),dev:mean(devs),crisp:mean(crisp)};
+  });
+  res.forEach(r=>{r.spread=sd(T.map(t=>t.per[r.sample]).filter(v=>v!=null))});
+  return {res,T};
+}
+function award(T,key,dir){
+  const v=T.filter(t=>t[key]!=null);if(v.length<2)return null;
+  const best=dir>0?Math.max(...v.map(t=>t[key])):Math.min(...v.map(t=>t[key]));
+  return {names:v.filter(t=>Math.abs(t[key]-best)<1e-9).map(t=>t.name),val:best};
+}
+function awards(T){
+  return [
+    {id:"harsh",title:"Harsh Critic",blurb:"Lowest average score given. Possibly a chef.",a:award(T,"avg",-1),fmt:v=>`gave ${fmt(v)} on average`},
+    {id:"generous",title:"Generous Soul",blurb:"Highest average score given. Loves all chickens equally.",a:award(T,"avg",1),fmt:v=>`gave ${fmt(v)} on average`},
+    {id:"contra",title:"Contrarian Rooster",blurb:"Furthest from the group on most scores.",a:award(T,"dev",1),fmt:v=>`${fmt(v)} points off the group, per score`},
+    {id:"hive",title:"Hive Mind Hen",blurb:"Closest to the group's taste. Basically the average.",a:award(T,"dev",-1),fmt:v=>`only ${fmt(v)} points off the group, per score`},
+    {id:"crunch",title:"Crunch Fiend",blurb:"Hardest to impress on crispiness.",a:award(T,"crisp",-1),fmt:v=>`crispiness average ${fmt(v)}`}
+  ].filter(x=>x.a);
+}
+
+// ---------- Charts (inline SVG) ----------
+function barsSVG(res){
+  const W=680,H=310,pl=34,pr=8,pt=22,pb=60,ph=H-pt-pb,gw=(W-pl-pr)/res.length,bw=Math.min(22,gw*.22),y=v=>pt+ph*(1-v/5);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average score per brand in each category">`;
+  for(let k=0;k<=5;k++)s+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y(k)}" y2="${y(k)}"/><text class="axis" x="${pl-8}" y="${y(k)+4}" text-anchor="end">${k}</text>`;
+  res.forEach((r,i)=>{
+    const cx=pl+gw*i+gw/2,start=cx-bw*1.5-3;
+    CATS.forEach((c,ci)=>{const v=r[c.k];if(v==null)return;const x=start+ci*(bw+3);
+      s+=`<rect x="${x}" y="${y(v)}" width="${bw}" height="${y(0)-y(v)}" rx="3" style="fill:${CATCOL[c.k]}"><title>${esc(r.brand)} · ${c.short}: ${fmt(v)}</title></rect><text class="val" x="${x+bw/2}" y="${y(v)-5}" text-anchor="middle">${v.toFixed(1)}</text>`});
+    s+=`<text class="lbl" x="${cx}" y="${H-pb+20}" text-anchor="middle">${esc(r.brand)}</text><text class="axis" x="${cx}" y="${H-pb+38}" text-anchor="middle">overall ${fmt(r.overall)}</text>`;
+  });
+  return s+`</svg>`;
+}
+function distSVG(res,tasters){
+  const W=680,lw=122,rh=36,pt=4,H=pt+res.length*rh+4;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="How many of each score every brand received">`;
+  res.forEach((r,i)=>{
+    const counts=[0,0,0,0,0];
+    tasters.forEach(t=>CATS.forEach(c=>{const v=t.scores[r.sample]&&t.scores[r.sample][c.k];if(v>=1&&v<=5)counts[v-1]++}));
+    const tot=counts.reduce((a,b)=>a+b,0)||1,yy=pt+i*rh;let x=lw;
+    s+=`<text class="lbl" x="${lw-10}" y="${yy+rh/2+4}" text-anchor="end">${esc(r.brand)}</text>`;
+    counts.forEach((n,k)=>{const w=(W-lw-4)*n/tot;
+      if(w>0){s+=`<rect x="${x}" y="${yy+4}" width="${w}" height="${rh-10}" style="fill:var(--d${k+1})"><title>${esc(r.brand)}: ${n} × ${k+1} (${RATE[k]})</title></rect>`;
+        if(w>20)s+=`<text x="${x+w/2}" y="${yy+rh/2+3}" text-anchor="middle" style="fill:var(--t${k+1});font:700 11px var(--mono)">${n}</text>`}
+      x+=w});
+  });
+  return s+`</svg>`;
+}
+function dotsSVG(r,tasters){
+  const W=680,lw=110,rowH=84,pt=8,H=pt+3*rowH+22,x=v=>lw+30+(v-1)*(W-lw-60)/4;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Every taster's score for ${esc(r.brand)}">`;
+  for(let v=1;v<=5;v++)s+=`<text class="axis" x="${x(v)}" y="${H-4}" text-anchor="middle">${v} ${RATE[v-1]}</text>`;
+  CATS.forEach((c,ci)=>{
+    const base=pt+ci*rowH+rowH-14;
+    s+=`<text class="lbl" x="0" y="${base-4}">${c.short}</text><line class="grid" x1="${lw}" x2="${W-10}" y1="${base}" y2="${base}"/>`;
+    const by={1:[],2:[],3:[],4:[],5:[]};
+    tasters.forEach(t=>{const v=t.scores[r.sample]&&t.scores[r.sample][c.k];if(by[v])by[v].push(t.name)});
+    for(let v=1;v<=5;v++)by[v].forEach((nm,j)=>{const col=j%5,row=Math.floor(j/5);
+      s+=`<circle cx="${x(v)+(col-2)*11}" cy="${base-7-row*11}" r="4.6" style="fill:${CATCOL[c.k]}"><title>${esc(nm)}: ${v}</title></circle>`});
+    if(r[c.k]!=null){const mx=x(r[c.k]);s+=`<line class="meanline" x1="${mx}" x2="${mx}" y1="${base-56}" y2="${base+3}"/><text class="val" x="${mx+4}" y="${base-48}">avg ${r[c.k].toFixed(1)}</text>`}
+  });
+  return s+`</svg>`;
+}
+function compareSVG(t,res){
+  const W=680,lw=122,rh=32,pt=4,H=pt+res.length*rh+20,x=v=>lw+v/5*(W-lw-50);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t.name)}'s scores against the group">`;
+  for(let k=1;k<=5;k++)s+=`<line class="grid" x1="${x(k)}" x2="${x(k)}" y1="${pt}" y2="${H-18}"/><text class="axis" x="${x(k)}" y="${H-4}" text-anchor="middle">${k}</text>`;
+  res.forEach((r,i)=>{const yy=pt+i*rh,v=t.per[r.sample];
+    s+=`<text class="lbl" x="${lw-10}" y="${yy+rh/2+4}" text-anchor="end">${esc(r.brand)}</text>`;
+    if(v!=null)s+=`<rect x="${lw}" y="${yy+7}" width="${x(v)-lw}" height="${rh-14}" rx="3" style="fill:var(--gold)"><title>${esc(t.name)}: ${fmt(v)}</title></rect><text class="val" x="${x(v)+6}" y="${yy+rh/2+4}">${v.toFixed(1)}</text>`;
+    if(r.overall!=null)s+=`<line x1="${x(r.overall)}" x2="${x(r.overall)}" y1="${yy+3}" y2="${yy+rh-3}" style="stroke:var(--ink);stroke-width:3"><title>Group: ${fmt(r.overall)}</title></line>`;
+  });
+  return s+`</svg>`;
+}
+function heatTable(res,T){
+  let h=`<div class="tablewrap"><table><thead><tr><th>Taster</th>${res.map(r=>`<th style="text-align:center">${esc(r.brand)}</th>`).join("")}</tr></thead><tbody>`;
+  T.forEach(t=>{h+=`<tr><td>${esc(t.name)}</td>`+res.map(r=>{const v=t.per[r.sample];if(v==null)return `<td class="heat">–</td>`;
+    const p=Math.round((v-1)/4*100);return `<td class="heat" style="background:color-mix(in srgb,var(--gold) ${p}%,var(--panel));color:${p>55?"#2b1a10":"var(--ink)"}">${v.toFixed(1)}</td>`}).join("")+`</tr>`});
+  return h+`</tbody></table></div>`;
+}
+const legendCats=`<div class="legend">${CATS.map(c=>`<span><i style="background:${CATCOL[c.k]}"></i>${c.short}</span>`).join("")}</div>`;
+const legendDist=`<div class="legend">${RATE.map((r,k)=>`<span><i style="background:var(--d${k+1})"></i>${k+1} ${r}</span>`).join("")}</div>`;
+
+// ---------- Results view ----------
+function renderReveal(target,data,opts){
+  const {res,T}=analyze(data);
+  target.innerHTML="";
+  const nav=document.createElement("div");nav.className="subtabs";nav.setAttribute("role","tablist");
+  const panes={};
+  [["podium","🏆 Podium"],["charts","📊 Charts"],["tasters","🐔 Tasters"]].forEach(([k,label],i)=>{
+    const b=document.createElement("button");b.type="button";b.textContent=label;b.setAttribute("role","tab");b.setAttribute("aria-selected",i===0);
+    b.addEventListener("click",()=>{nav.querySelectorAll("button").forEach(x=>x.setAttribute("aria-selected",x===b));Object.entries(panes).forEach(([pk,p])=>p.hidden=pk!==k)});
+    nav.appendChild(b);
+    const p=document.createElement("div");p.style.cssText="display:grid;gap:14px";p.hidden=i!==0;panes[k]=p;
+  });
+  target.appendChild(nav);Object.values(panes).forEach(p=>target.appendChild(p));
+
+  podium(panes.podium,res,opts);
+  charts(panes.charts,res,T);
+  tasterView(panes.tasters,res,T);
+}
+
+function podium(el,res,opts){
+  const head=document.createElement("div");head.className="headline";head.hidden=true;
+  head.textContent="Winner winner, chicken dinner!";
+  const pod=document.createElement("div");pod.className="podium";
+  el.append(head,pod);
+  const animate=opts.animate&&!reduceMotion;
+  const finish=()=>{head.hidden=false;if(opts.confetti)confetti();podiumExtras(el,res)};
+  [...res].reverse().forEach((r,i)=>{
+    const place=res.length-i;
+    const add=()=>{
+      const d=document.createElement("div");d.className="place"+(place===1?" first":"");
+      d.innerHTML=`<div class="rank">${place}</div><div><div class="brand"></div><div class="sub">Mystery chicken ${r.sample} · ${r.n} taster${r.n===1?"":"s"}</div></div><div class="score">${fmt(r.overall)}</div>`;
+      d.querySelector(".brand").textContent=r.brand+(place===1?" 🏆":place===res.length?" 🥚":"");
+      pod.prepend(d);if(place===1)finish();
+    };
+    if(animate)setTimeout(add,i*(place<=2?1500:800));else add();
+  });
+}
+function podiumExtras(el,res){
+  const g=document.createElement("div");g.className="grid3";
+  CATS.forEach(c=>{
+    const best=Math.max(...res.map(r=>r[c.k]??-1)),w=res.filter(r=>r[c.k]!=null&&Math.abs(r[c.k]-best)<1e-9);
+    const card=document.createElement("div");card.className="card";
+    card.innerHTML=`<div class="tag">Best ${c.short.toLowerCase()}</div><div class="brand"></div><div class="sub">avg ${fmt(best)} / 5${w.length>1?" · tie":""}</div>`;
+    card.querySelector(".brand").textContent=w.map(x=>x.brand).join(" & ")||"–";g.appendChild(card);
+  });
+  el.appendChild(g);
+  const best={};["flavour","crisp","juicy","overall"].forEach(k=>best[k]=Math.max(...res.map(r=>r[k]??-1)));
+  const tw=document.createElement("div");tw.className="panel";
+  tw.innerHTML=`<h3>Full scoreboard</h3><div class="tablewrap"><table><thead><tr><th>Brand</th><th>Flavour</th><th>Crisp</th><th>Juicy</th><th>Overall</th></tr></thead><tbody>${res.map(r=>`<tr><td>${esc(r.brand)} (${r.sample})</td>${["flavour","crisp","juicy","overall"].map(k=>`<td class="${r[k]!=null&&Math.abs(r[k]-best[k])<1e-9?"win":""}">${fmt(r[k])}</td>`).join("")}</tr>`).join("")}</tbody></table></div><p class="muted small">Overall is the plain average of the three categories. Ties go to higher Flavour, then Crispiness, then Juiciness. The 🥚 goes to last place.</p>`;
+  el.appendChild(tw);
+}
+
+function charts(el,res,T){
+  const facts=document.createElement("div");facts.className="grid3";
+  const withSpread=res.filter(r=>r.spread!=null);
+  const fact=(tag,title,sub)=>`<div class="card"><div class="tag">${tag}</div><div class="brand">${esc(title)}</div><div class="sub">${sub}</div></div>`;
+  let fh="";
+  if(withSpread.length){
+    const div=withSpread.reduce((a,b)=>b.spread>a.spread?b:a),uni=withSpread.reduce((a,b)=>b.spread<a.spread?b:a);
+    fh+=fact("Fowl play: most divisive",div.brand,`people disagreed the most (spread ${div.spread.toFixed(2)})`);
+    fh+=fact("Most unanimous",uni.brand,`people agreed the most (spread ${uni.spread.toFixed(2)})`);
+  }
+  let fives=0,ones=0,total=0;T.forEach(t=>LETTERS.forEach(L=>CATS.forEach(c=>{const v=t.scores[L]&&t.scores[L][c.k];if(v>=1){total+=v;if(v===5)fives++;if(v===1)ones++}})));
+  fh+=fact("Score tally",`${fives} × "Cluck yeah!"`,`and ${ones} × "Fowl" · ${total} points handed out`);
+  facts.innerHTML=fh;el.appendChild(facts);
+
+  const p1=document.createElement("div");p1.className="panel";
+  p1.innerHTML=`<h3>Category breakdown by brand</h3><p class="muted small">Average score out of 5, ordered by overall rank.</p>${legendCats}<div class="chart">${barsSVG(res)}</div>`;
+  el.appendChild(p1);
+
+  const p2=document.createElement("div");p2.className="panel";
+  p2.innerHTML=`<h3>How many of each score</h3><p class="muted small">Every score each brand got, across all three categories. More dark orange means more love.</p>${legendDist}<div class="chart">${distSVG(res,T)}</div>`;
+  el.appendChild(p2);
+
+  const p3=document.createElement("div");p3.className="panel";
+  p3.innerHTML=`<h3>Every vote, brand by brand</h3><p class="muted small">Each dot is one person's score. Hover or long-press a dot to see who. The dashed line is the average.</p>`;
+  const picker=document.createElement("div");picker.className="chips";
+  const holder=document.createElement("div");holder.className="chart";
+  res.forEach((r,i)=>{const b=document.createElement("button");b.type="button";b.className="chip";b.textContent=r.brand;b.setAttribute("aria-selected",i===0);
+    b.addEventListener("click",()=>{picker.querySelectorAll("button").forEach(x=>x.setAttribute("aria-selected",x===b));holder.innerHTML=dotsSVG(r,T)});picker.appendChild(b)});
+  holder.innerHTML=res.length?dotsSVG(res[0],T):"";
+  p3.append(picker,holder);el.appendChild(p3);
+
+  const p4=document.createElement("div");p4.className="panel";
+  p4.innerHTML=`<h3>Who loved what</h3><p class="muted small">Each person's average for each brand. Darker gold means a higher score.</p>${heatTable(res,T)}`;
+  el.appendChild(p4);
+}
+
+function tasterView(el,res,T){
+  const aw=awards(T);
+  if(aw.length){
+    const p=document.createElement("div");p.className="panel";
+    p.innerHTML=`<h3>Taster awards</h3><div class="grid3">${aw.map(x=>`<div class="card"><div class="tag">${x.title}</div><div class="brand">${esc(x.a.names.join(" & "))}</div><div class="sub">${x.fmt(x.a.val)}</div><p class="muted small">${x.blurb}</p></div>`).join("")}</div>`;
+    el.appendChild(p);
+  }
+  if(!T.length){const p=document.createElement("p");p.className="muted";p.textContent="No tasters yet.";el.appendChild(p);return}
+  const picker=document.createElement("div");picker.className="chips";
+  const card=document.createElement("div");card.className="panel";
+  const showT=t=>{
+    const badges=aw.filter(x=>x.a.names.includes(t.name)).map(x=>`<span class="badge">${x.title}</span>`).join("");
+    const ranked=res.filter(r=>t.per[r.sample]!=null).map(r=>({r,v:t.per[r.sample]}));
+    const hi=Math.max(...ranked.map(x=>x.v)),lo=Math.min(...ranked.map(x=>x.v));
+    const fav=ranked.filter(x=>x.v===hi).map(x=>x.r.brand).join(" & "),worst=ranked.filter(x=>x.v===lo).map(x=>x.r.brand).join(" & ");
+    const agree=t.dev!=null?Math.max(0,Math.round(100-t.dev/4*100)):null;
+    card.innerHTML=`<div class="row" style="justify-content:space-between"><h2>${esc(t.name)}</h2><div class="badges">${badges}</div></div>
+    <div class="grid3">
+      <div class="card"><div class="tag">Favourite</div><div class="brand">${esc(fav)}</div><div class="sub">${fmt(hi)} avg</div></div>
+      <div class="card"><div class="tag">Least favourite</div><div class="brand">${esc(worst)}</div><div class="sub">${fmt(lo)} avg</div></div>
+      <div class="card"><div class="tag">Agrees with the flock</div><div class="brand">${agree==null?"–":agree+"%"}</div><div class="sub">average score given ${fmt(t.avg)}</div></div>
+    </div>
+    <div><h3>Their verdict vs the group</h3><p class="muted small">Gold bar is ${esc(t.name)}'s average for each brand. Black line is the group's.</p></div>
+    <div class="chart">${compareSVG(t,res)}</div>
+    <div class="tablewrap"><table><thead><tr><th>Brand</th><th>Flavour</th><th>Crisp</th><th>Juicy</th><th>Their avg</th><th>Group</th></tr></thead><tbody>${res.map(r=>{const s=t.scores[r.sample]||{};return `<tr><td>${esc(r.brand)} (${r.sample})</td><td>${s.flavour||"–"}</td><td>${s.crisp||"–"}</td><td>${s.juicy||"–"}</td><td>${fmt(t.per[r.sample])}</td><td>${fmt(r.overall)}</td></tr>`}).join("")}</tbody></table></div>`;
+  };
+  T.forEach((t,i)=>{const b=document.createElement("button");b.type="button";b.className="chip";b.textContent=t.name;b.setAttribute("aria-selected",i===0);
+    b.addEventListener("click",()=>{picker.querySelectorAll("button").forEach(x=>x.setAttribute("aria-selected",x===b));showT(t)});picker.appendChild(b)});
+  showT(T[0]);
+  el.append(picker,card);
+}
+
+function chips(el,names){el.innerHTML="";names.forEach(n=>{const s=document.createElement("span");s.className="chip";s.textContent=n;el.appendChild(s)})}
+async function loadResults(){
+  if(!connected)return;
+  try{
+    const st=await apiGet("status");
+    $("count").textContent=st.count;chips($("names"),st.names||[]);
+    if(st.revealed){
+      if(!shownReveal){const r=await apiGet("results");
+        if(r.ok){shownReveal=true;$("lockbox").hidden=true;$("stage").hidden=false;renderReveal($("stage"),r,{animate:true,confetti:true});$("bubble").textContent="The results have hatched!"}}
+    }else if(shownReveal){shownReveal=false;$("lockbox").hidden=false;$("stage").hidden=true;$("stage").innerHTML=""}
+  }catch(e){}
+}
+
+// ---------- Host ----------
+function buildKey(key){
+  const g=$("keygrid");g.innerHTML="";
+  LETTERS.forEach((L,i)=>{
+    const row=document.createElement("div");row.className="keyrow";row.innerHTML=`<span class="letter">${L}</span>`;
+    const s=document.createElement("select");s.id="key-"+L;s.setAttribute("aria-label","Brand for sample "+L);
+    BRANDS.forEach(b=>{const o=document.createElement("option");o.textContent=b;o.value=b;s.appendChild(o)});
+    s.value=(key&&key[L])||BRANDS[i];row.appendChild(s);g.appendChild(row);
+  });
+}
+async function hostRefresh(){
+  const r=await apiPost({action:"hostStatus",pin:hostPin});
+  if(!r.ok){msg($("pinmsg"),r.error||"Couldn't open host controls.","err");return false}
+  $("hcount").textContent=r.count;chips($("hnames"),r.names||[]);
+  $("revealstate").textContent=r.revealed?"Results are visible to everyone, including individual scores.":"Results are hidden from everyone.";
+  if(!$("keygrid").children.length)buildKey(r.key);
+  if(!r.keySet)msg($("keymsg"),"No key saved yet. Results will show sample letters until you save one.","info");
+  return true;
+}
+async function unlock(){
+  if(!connected){msg($("pinmsg"),"This site isn't connected yet.","err");return}
+  hostPin=$("pin").value.trim();
+  try{if(await hostRefresh()){$("pinbox").hidden=true;$("hostpanel").hidden=false}}
+  catch(e){msg($("pinmsg"),"Couldn't reach the score sheet.","err")}
+}
+async function saveKey(){
+  const key={};LETTERS.forEach(L=>key[L]=$("key-"+L).value);
+  const r=await apiPost({action:"setKey",pin:hostPin,key});
+  msg($("keymsg"),r.ok?"Key saved.":(r.error||"Couldn't save the key."),r.ok?"ok":"err");
+}
+async function setReveal(on){
+  const r=await apiPost({action:"setReveal",pin:hostPin,revealed:on});
+  msg($("revealmsg"),r.ok?(on?"Revealed. Everyone's Results tab will update within about 10 seconds.":"Hidden again. Scoring is open."):(r.error||"Something went wrong."),r.ok?"ok":"err");
+  hostRefresh();
+}
+async function peek(){
+  const r=await apiPost({action:"hostResults",pin:hostPin});
+  if(r.ok)renderReveal($("peek"),r,{animate:false,confetti:false});else msg($("revealmsg"),r.error||"Couldn't load results.","err");
+}
+
+// ---------- Wire up ----------
+buildForm();
+$("notconnected").hidden=connected;
+$("submit").addEventListener("click",submitScores);
+$("refresh").addEventListener("click",loadResults);
+$("unlock").addEventListener("click",unlock);
+$("pin").addEventListener("keydown",e=>{if(e.key==="Enter")unlock()});
+$("savekey").addEventListener("click",saveKey);
+$("hrefresh").addEventListener("click",hostRefresh);
+$("revealbtn").addEventListener("click",()=>setReveal(true));
+$("hidebtn").addEventListener("click",()=>setReveal(false));
+$("peekbtn").addEventListener("click",peek);
+</script>
+</body>
+</html>
